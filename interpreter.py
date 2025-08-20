@@ -268,27 +268,22 @@ class Interpreter:
 
     def create_repeat_zone(self, iterations: int):
         """Create a repeat zone with input and output nodes"""
-        # Create repeat input node
         input_node = self.tree.nodes.new(type="GeometryNodeRepeatInput")
-        self.nodes.append(input_node)
-        
-        # Create repeat output node
         output_node = self.tree.nodes.new(type="GeometryNodeRepeatOutput")
-        self.nodes.append(output_node)
         
-        # Pair the nodes
         input_node.pair_with_output(output_node)
         
-        # Store repeat zone info for later use
         self.current_repeat_zone = {
             'input_node': input_node,
             'output_node': output_node,
             'iterations': iterations,
-            'external_vars': list(self.variables.keys())
+            'captured_vars': {}
         }
+        
+        self.nodes.extend([input_node, output_node])
 
     def execute_repeat_body(self, body_operations: list):
-        """Execute the repeat body operations"""
+        """Execute repeat body and connect variables"""
         if not hasattr(self, 'current_repeat_zone'):
             return
             
@@ -296,23 +291,39 @@ class Interpreter:
         input_node = repeat_zone['input_node']
         output_node = repeat_zone['output_node']
         
-        # Create input connections for external variables
-        for i, var_name in enumerate(repeat_zone['external_vars']):
-            if var_name in self.variables:
-                var_value = self.variables[var_name]
-                # Connect external variable to input node
-                if hasattr(input_node, 'inputs') and len(input_node.inputs) > i + 1:  # +1 for iterations
-                    input_node.inputs[i + 1].default_value = var_value
+        # Analyze loop body to identify variables that need capture
+        loop_vars = set()
+        for operation in body_operations:
+            if operation.op_type == OpType.CREATE_VAR:
+                loop_vars.add(operation.data)  # Variable name
+        
+        # Compare with external variables and capture only those that exist
+        captured_vars = {}
+        for name in loop_vars:
+            if name in self.variables and isinstance(self.variables[name], NodeSocket):
+                captured_vars[name] = self.variables[name]
         
         # Set iterations
-        if hasattr(input_node, 'inputs') and len(input_node.inputs) > 0:
+        if len(input_node.inputs) > 0:
             input_node.inputs[0].default_value = repeat_zone['iterations']
         
-        # Execute body operations in the context of the repeat zone
-        # This is a simplified implementation - in practice, you'd need to handle
-        # the actual execution within the repeat zone context
+        # Connect captured variables to input node inputs (external connections)
+        for i, (name, socket) in enumerate(captured_vars.items()):
+            if i + 1 < len(input_node.inputs):
+                self.tree.links.new(socket, input_node.inputs[i + 1])
+        
+        # Connect variables to input node outputs (internal connections)
+        for i, (name, _) in enumerate(captured_vars.items()):
+            if i + 1 < len(input_node.outputs):
+                self.variables[name] = input_node.outputs[i + 1]
+        
+        # Execute body operations with proper variable connections
         for operation in body_operations:
             self.operation(operation)
         
-        # Clear current repeat zone
+        # Connect output variables from repeat zone
+        for i, (name, _) in enumerate(captured_vars.items()):
+            if i + 1 < len(output_node.outputs):
+                self.variables[name] = output_node.outputs[i + 1]
+        
         delattr(self, 'current_repeat_zone')
