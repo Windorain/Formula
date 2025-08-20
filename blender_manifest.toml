@@ -2,22 +2,22 @@ schema_version = "1.0.0"
 
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
-id = "math_formula"
+id = "formula"
 version = "2.1.0"
-name = "Math Formula"
+name = "Formula"
 tagline = "Quickly add nodes by typing in a formula"
-maintainer = "TESTTESTWannes Malfait <wannes.malfait@gmail.com>"
+maintainer = "Windorain"
 # Supported types: "add-on", "theme"
 type = "add-on"
 
 # # Optional: link to documentation, support, source files, etc
-website = "https://github.com/WannesMalfait/Blender-Add-ons/wiki/Users#math-formula"
+website = "https://github.com/Windorain/Formula"
 
 # # Optional: tag list defined by Blender and server, see:
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
 tags = ["Node"]
 
-blender_version_min = "4.3.0"
+blender_version_min = "4.5.1"
 # # Optional: Blender version that the extension does not support, earlier versions are supported.
 # # This can be omitted and defined later on the extensions platform if an issue is found.
 # blender_version_max = "4.4.0"
