@@ -373,6 +373,16 @@ class Interpreter:
         for operation in body_operations:
             self.operation(operation)
         
+        # Connect loop body results to output node inputs
+        # This ensures data flows from the loop body to the output
+        for i, (name, _) in enumerate(captured_vars.items()):
+            if i < len(output_node.inputs):
+                # Get the current value of the variable after loop execution
+                if name in self.variables:
+                    var_value = self.variables[name]
+                    if isinstance(var_value, NodeSocket):
+                        self.tree.links.new(var_value, output_node.inputs[i])
+        
         # Connect output variables from repeat zone
         # No need to skip, geometry was removed
         for i, (name, _) in enumerate(captured_vars.items()):
