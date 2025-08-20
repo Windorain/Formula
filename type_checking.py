@@ -55,10 +55,6 @@ class TypeChecker:
                 )
             self.check_loop(stmt)
         elif isinstance(stmt, ast_defs.Repeat):
-            if in_function:
-                return self.error(
-                    "No repeat definitions inside a function allowed", stmt
-                )
             self.check_repeat(stmt)
         elif isinstance(stmt, ast_defs.FunctionDef):
             if in_function:

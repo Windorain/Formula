@@ -26,6 +26,8 @@ class Interpreter:
         # Variables in the form of output sockets
         self.variables: dict[str, ValueType | NodeSocket | list[NodeSocket]] = {}
         self.function_outputs: list[NodeSocket | None] = []
+        # Stack for nested repeat zones to support nesting and function contexts
+        self.repeat_zone_stack: list[dict] = []
 
     def operation(self, operation: Operation):
         op_type = operation.op_type
@@ -319,21 +321,24 @@ class Interpreter:
             if len(input_node.inputs) > 0:
                 input_node.inputs[0].default_value = iterations
         
-        self.current_repeat_zone = {
+        repeat_zone = {
             'input_node': input_node,
             'output_node': output_node,
             'iterations': iterations,
             'captured_vars': {}
         }
         
+        # Push to stack instead of single attribute
+        self.repeat_zone_stack.append(repeat_zone)
+        
         self.nodes.extend([input_node, output_node])
 
     def execute_repeat_body(self, body_operations: list):
         """Execute repeat body and connect variables"""
-        if not hasattr(self, 'current_repeat_zone'):
+        if not self.repeat_zone_stack:
             return
             
-        repeat_zone = self.current_repeat_zone
+        repeat_zone = self.repeat_zone_stack[-1]
         input_node = repeat_zone['input_node']
         output_node = repeat_zone['output_node']
         
@@ -407,4 +412,5 @@ class Interpreter:
             if i < len(output_node.outputs):
                 self.variables[name] = output_node.outputs[i]
         
-        delattr(self, 'current_repeat_zone')
+        # Pop from stack instead of deleting attribute
+        self.repeat_zone_stack.pop()
