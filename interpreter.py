@@ -187,6 +187,27 @@ class Interpreter:
         else:
             assert False, "Unreachable"
 
+    @staticmethod
+    def socket_bl_idname_to_repeat_type(bl_idname: str) -> str:
+        """Convert NodeSocket bl_idname to repeat zone socket_type enum"""
+        mapping = {
+            "NodeSocketBool": "BOOLEAN",
+            "NodeSocketInt": "INT", 
+            "NodeSocketFloat": "FLOAT",
+            "NodeSocketColor": "RGBA",
+            "NodeSocketVector": "VECTOR",
+            "NodeSocketGeometry": "GEOMETRY",
+            "NodeSocketString": "STRING",
+            "NodeSocketShader": "SHADER",
+            "NodeSocketObject": "OBJECT",
+            "NodeSocketImage": "IMAGE",
+            "NodeSocketCollection": "COLLECTION",
+            "NodeSocketTexture": "TEXTURE",
+            "NodeSocketMaterial": "MATERIAL",
+            "NodeSocketRotation": "ROTATION",
+        }
+        return mapping.get(bl_idname, "FLOAT")  # Default to FLOAT if unknown
+
     def execute_node_group(self, node_group: CompiledNodeGroup, args: list[ValueType]):
         if node_group.name in self.node_group_trees:
             node_tree = self.node_group_trees[node_group.name]
@@ -273,6 +294,13 @@ class Interpreter:
         
         input_node.pair_with_output(output_node)
         
+        # Remove default geometry interfaces to simplify slot management
+        if hasattr(input_node, 'repeat_items') and len(input_node.repeat_items) > 1:
+            input_node.repeat_items.remove(input_node.repeat_items[1])  # Remove geometry
+        
+        if hasattr(output_node, 'repeat_items') and len(output_node.repeat_items) > 0:
+            output_node.repeat_items.remove(output_node.repeat_items[0])  # Remove geometry
+        
         self.current_repeat_zone = {
             'input_node': input_node,
             'output_node': output_node,
@@ -307,12 +335,36 @@ class Interpreter:
         if len(input_node.inputs) > 0:
             input_node.inputs[0].default_value = repeat_zone['iterations']
         
+        # Create input/output slots for captured variables
+        for i, (name, socket) in enumerate(captured_vars.items()):
+            # Convert socket type to repeat zone enum
+            socket_type = self.socket_bl_idname_to_repeat_type(socket.bl_idname)
+            
+            # Add input slot
+            if hasattr(input_node, 'repeat_items'):
+                new_input = input_node.repeat_items.new(
+                    socket_type=socket_type,
+                    name=name
+                )
+            
+            # Add output slot  
+            if hasattr(output_node, 'repeat_items'):
+                new_output = output_node.repeat_items.new(
+                    socket_type=socket_type,
+                    name=name
+                )
+        
+        # Update node tree to rebuild sockets
+        self.tree.update_tag()
+        
         # Connect captured variables to input node inputs (external connections)
+        # Skip first input (iterations)
         for i, (name, socket) in enumerate(captured_vars.items()):
             if i + 1 < len(input_node.inputs):
                 self.tree.links.new(socket, input_node.inputs[i + 1])
         
         # Connect variables to input node outputs (internal connections)
+        # Skip first output (iterations)
         for i, (name, _) in enumerate(captured_vars.items()):
             if i + 1 < len(input_node.outputs):
                 self.variables[name] = input_node.outputs[i + 1]
@@ -322,8 +374,9 @@ class Interpreter:
             self.operation(operation)
         
         # Connect output variables from repeat zone
+        # No need to skip, geometry was removed
         for i, (name, _) in enumerate(captured_vars.items()):
-            if i + 1 < len(output_node.outputs):
-                self.variables[name] = output_node.outputs[i + 1]
+            if i < len(output_node.outputs):
+                self.variables[name] = output_node.outputs[i]
         
         delattr(self, 'current_repeat_zone')
