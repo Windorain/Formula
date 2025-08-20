@@ -48,6 +48,7 @@ class TokenType(IntEnum):
     FUNCTION = auto()
     NODEGROUP = auto()
     LOOP = auto()
+    REPEAT = auto()
     TRUE = auto()
     FALSE = auto()
     NOT = auto()
@@ -180,6 +181,8 @@ class Scanner:
             return self.make_token(TokenType.NODEGROUP)
         if name == "loop":
             return self.make_token(TokenType.LOOP)
+        if name == "repeat":
+            return self.make_token(TokenType.REPEAT)
         if name == "true":
             return self.make_token(TokenType.TRUE)
         if name == "false":

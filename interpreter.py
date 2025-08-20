@@ -31,7 +31,7 @@ class Interpreter:
         op_type = operation.op_type
         op_data = operation.data
         assert (
-            OpType.END_OF_STATEMENT.value == 11
+            OpType.END_OF_STATEMENT.value == 14
         ), "Exhaustive handling of Operation types."
         if op_type == OpType.PUSH_VALUE:
             self.stack.append(op_data)
@@ -117,6 +117,15 @@ class Interpreter:
             self.nodes.append(node)
         elif op_type == OpType.RENAME_NODE:
             self.nodes[-1].label = op_data
+        elif op_type == OpType.CREATE_NODE_GROUP:
+            assert isinstance(op_data, CompiledNodeGroup), "Bug in type checker."
+            self.create_node_group(op_data)
+        elif op_type == OpType.CREATE_REPEAT_ZONE:
+            assert isinstance(op_data, int), "Iterations should be an integer."
+            self.create_repeat_zone(op_data)
+        elif op_type == OpType.REPEAT_BODY:
+            assert isinstance(op_data, list), "Repeat body should be a list of operations."
+            self.execute_repeat_body(op_data)
         elif op_type == OpType.END_OF_STATEMENT:
             self.stack = []
         else:
@@ -256,3 +265,54 @@ class Interpreter:
             self.stack.append(
                 [node.outputs[i] for i in reversed(range(len(node.outputs)))]
             )
+
+    def create_repeat_zone(self, iterations: int):
+        """Create a repeat zone with input and output nodes"""
+        # Create repeat input node
+        input_node = self.tree.nodes.new(type="GeometryNodeRepeatInput")
+        self.nodes.append(input_node)
+        
+        # Create repeat output node
+        output_node = self.tree.nodes.new(type="GeometryNodeRepeatOutput")
+        self.nodes.append(output_node)
+        
+        # Pair the nodes
+        input_node.pair_with_output(output_node)
+        
+        # Store repeat zone info for later use
+        self.current_repeat_zone = {
+            'input_node': input_node,
+            'output_node': output_node,
+            'iterations': iterations,
+            'external_vars': list(self.variables.keys())
+        }
+
+    def execute_repeat_body(self, body_operations: list):
+        """Execute the repeat body operations"""
+        if not hasattr(self, 'current_repeat_zone'):
+            return
+            
+        repeat_zone = self.current_repeat_zone
+        input_node = repeat_zone['input_node']
+        output_node = repeat_zone['output_node']
+        
+        # Create input connections for external variables
+        for i, var_name in enumerate(repeat_zone['external_vars']):
+            if var_name in self.variables:
+                var_value = self.variables[var_name]
+                # Connect external variable to input node
+                if hasattr(input_node, 'inputs') and len(input_node.inputs) > i + 1:  # +1 for iterations
+                    input_node.inputs[i + 1].default_value = var_value
+        
+        # Set iterations
+        if hasattr(input_node, 'inputs') and len(input_node.inputs) > 0:
+            input_node.inputs[0].default_value = repeat_zone['iterations']
+        
+        # Execute body operations in the context of the repeat zone
+        # This is a simplified implementation - in practice, you'd need to handle
+        # the actual execution within the repeat zone context
+        for operation in body_operations:
+            self.operation(operation)
+        
+        # Clear current repeat zone
+        delattr(self, 'current_repeat_zone')

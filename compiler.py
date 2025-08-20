@@ -56,6 +56,8 @@ class Compiler:
             self.compile_assign_like(stmt)
         elif isinstance(stmt, td.TyLoop):
             self.compile_loop(stmt)
+        elif isinstance(stmt, td.TyRepeat):
+            self.compile_repeat(stmt)
         else:
             # These are the only possibilities for now
             assert False, "Unreachable code"
@@ -75,6 +77,18 @@ class Compiler:
                 self.operations.append(td.Operation(td.OpType.PUSH_VALUE, i))
                 self.operations.append(td.Operation(td.OpType.CREATE_VAR, loop.var.id))
             self.operations += compiled_body
+
+    def compile_repeat(self, repeat: td.TyRepeat):
+        outer_ops = self.operations
+        self.operations = []
+        for stmt in repeat.body:
+            self.compile_statement(stmt)
+        compiled_body = self.operations
+        self.operations = outer_ops
+
+        # Create repeat zone operations
+        self.operations.append(td.Operation(td.OpType.CREATE_REPEAT_ZONE, repeat.iterations))
+        self.operations.append(td.Operation(td.OpType.REPEAT_BODY, compiled_body))
 
     def compile_assign_like(self, assign: td.TyAssign | td.TyOut):
         targets = assign.targets

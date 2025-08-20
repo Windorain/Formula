@@ -323,6 +323,19 @@ class Parser:
         self.curr_node = None
         return ast_defs.Loop(token, var, start, end, body)
 
+    def repeat(self) -> ast_defs.Repeat:
+        token = self.previous
+        self.consume(TokenType.INT, 'Expect iterations count after "repeat".')
+        iterations = int(self.previous.lexeme)
+        self.consume(TokenType.LEFT_BRACE, "Expect repeat body.")
+        body = []
+        while not self.check(TokenType.RIGHT_BRACE) and not self.check(TokenType.EOL):
+            statement = self.declaration()
+            if statement is not None:
+                body.append(statement)
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after repeat body.")
+        return ast_defs.Repeat(token, iterations, body)
+
     def declaration(self) -> ast_defs.stmt | None:
         node: ast_defs.stmt | None = None
         if self.match(TokenType.OUT):
@@ -333,6 +346,8 @@ class Parser:
             node = self.nodegroup_def()
         elif self.match(TokenType.LOOP):
             node = self.loop()
+        elif self.match(TokenType.REPEAT):
+            node = self.repeat()
         else:
             node = self.statement()
         return node
@@ -630,6 +645,7 @@ rules: list[ParseRule] = [
     ParseRule(None, None, Precedence.NONE),  # FUNCTION
     ParseRule(None, None, Precedence.NONE),  # NODEGROUP
     ParseRule(None, None, Precedence.NONE),  # LOOP
+    ParseRule(None, None, Precedence.NONE),  # REPEAT
     ParseRule(boolean, None, Precedence.NONE),  # TRUE
     ParseRule(boolean, None, Precedence.NONE),  # FALSE
     ParseRule(unary, None, Precedence.NOT),  # NOT

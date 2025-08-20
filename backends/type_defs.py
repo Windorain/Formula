@@ -116,7 +116,13 @@ class OpType(IntEnum):
     CALL_BUILTIN = auto()
     # Set the label of the last added node to the given name.
     RENAME_NODE = auto()
-    # Clear the stack.
+    # Create a node group tree
+    CREATE_NODE_GROUP = auto()
+    # Create a repeat zone
+    CREATE_REPEAT_ZONE = auto()
+    # Repeat body operations
+    REPEAT_BODY = auto()
+    # End of statement
     END_OF_STATEMENT = auto()
 
 
@@ -256,6 +262,12 @@ class TyLoop(ty_stmt):
     var: Union[None, Var]
     start: int
     end: int
+    body: list[ty_stmt]
+
+
+@dataclass
+class TyRepeat(ty_stmt):
+    iterations: int
     body: list[ty_stmt]
 
 

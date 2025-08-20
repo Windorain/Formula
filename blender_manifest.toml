@@ -6,7 +6,7 @@ id = "math_formula"
 version = "2.1.0"
 name = "Math Formula"
 tagline = "Quickly add nodes by typing in a formula"
-maintainer = "Wannes Malfait <wannes.malfait@gmail.com>"
+maintainer = "TESTTESTWannes Malfait <wannes.malfait@gmail.com>"
 # Supported types: "add-on", "theme"
 type = "add-on"
 

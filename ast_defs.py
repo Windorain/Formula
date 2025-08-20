@@ -208,6 +208,12 @@ class Loop(stmt):
     body: list[stmt]
 
 
+@dataclass
+class Repeat(stmt):
+    iterations: int
+    body: list[stmt]
+
+
 def find(node: Ast, token: Token) -> Union[None, Ast]:
     if (
         node.token is not None

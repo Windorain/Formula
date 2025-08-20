@@ -49,7 +49,17 @@ class TypeChecker:
         elif isinstance(stmt, ast_defs.Assign):
             self.check_assign(stmt)
         elif isinstance(stmt, ast_defs.Loop):
+            if in_function:
+                return self.error(
+                    "No loop definitions inside a function allowed", stmt
+                )
             self.check_loop(stmt)
+        elif isinstance(stmt, ast_defs.Repeat):
+            if in_function:
+                return self.error(
+                    "No repeat definitions inside a function allowed", stmt
+                )
+            self.check_repeat(stmt)
         elif isinstance(stmt, ast_defs.FunctionDef):
             if in_function:
                 return self.error(
@@ -91,6 +101,19 @@ class TypeChecker:
             assert checked_stmt is not None, "There should be a statement"
             body.append(checked_stmt)
         self.curr_node = td.TyLoop(var, loop.start, loop.end, body)
+
+    def check_repeat(
+        self,
+        repeat: ast_defs.Repeat,
+    ):
+        body = []
+        for stmt in repeat.body:
+            # Make it so no function or node group definitions can be made.
+            self.check_statement(stmt, in_function=True)
+            checked_stmt = self.curr_node
+            assert checked_stmt is not None, "There should be a statement"
+            body.append(checked_stmt)
+        self.curr_node = td.TyRepeat(repeat.iterations, body)
 
     def out_types(
         self,
