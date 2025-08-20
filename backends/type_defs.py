@@ -267,7 +267,7 @@ class TyLoop(ty_stmt):
 
 @dataclass
 class TyRepeat(ty_stmt):
-    iterations: int
+    iterations: ty_expr  # Changed from int to ty_expr to support variables
     body: list[ty_stmt]
 
 

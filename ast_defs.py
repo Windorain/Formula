@@ -210,7 +210,7 @@ class Loop(stmt):
 
 @dataclass
 class Repeat(stmt):
-    iterations: int
+    iterations: expr  # Changed from int to expr to support variables
     body: list[stmt]
 
 

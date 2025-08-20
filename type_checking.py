@@ -106,6 +106,15 @@ class TypeChecker:
         self,
         repeat: ast_defs.Repeat,
     ):
+        # Check iterations expression
+        self.check_expr(repeat.iterations)
+        iterations_expr = self.curr_node
+        assert isinstance(iterations_expr, td.ty_expr), "Iterations should be an expression"
+        
+        # Check that iterations resolves to a value
+        if iterations_expr.stype == td.StackType.EMPTY:
+            return self.error("Iterations should resolve to a value", repeat)
+        
         body = []
         for stmt in repeat.body:
             # Make it so no function or node group definitions can be made.
@@ -113,7 +122,7 @@ class TypeChecker:
             checked_stmt = self.curr_node
             assert checked_stmt is not None, "There should be a statement"
             body.append(checked_stmt)
-        self.curr_node = td.TyRepeat(repeat.iterations, body)
+        self.curr_node = td.TyRepeat(iterations_expr, body)
 
     def out_types(
         self,

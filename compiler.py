@@ -86,8 +86,11 @@ class Compiler:
         compiled_body = self.operations
         self.operations = outer_ops
 
-        # Create repeat zone operations
-        self.operations.append(td.Operation(td.OpType.CREATE_REPEAT_ZONE, repeat.iterations))
+        # Compile iterations expression first
+        self.compile_expr(repeat.iterations)
+        
+        # Create repeat zone operations with iterations from stack
+        self.operations.append(td.Operation(td.OpType.CREATE_REPEAT_ZONE, None))
         self.operations.append(td.Operation(td.OpType.REPEAT_BODY, compiled_body))
 
     def compile_assign_like(self, assign: td.TyAssign | td.TyOut):

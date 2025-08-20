@@ -325,8 +325,18 @@ class Parser:
 
     def repeat(self) -> ast_defs.Repeat:
         token = self.previous
-        self.consume(TokenType.INT, 'Expect iterations count after "repeat".')
-        iterations = int(self.previous.lexeme)
+        # Support both variables and literal numbers for iterations
+        if self.match(TokenType.IDENTIFIER):
+            # Variable name
+            iterations = ast_defs.Name(self.previous, self.previous.lexeme)
+        elif self.match(TokenType.INT):
+            # Literal number
+            iterations = ast_defs.Const(int(self.previous.lexeme))
+        else:
+            # Error: neither variable nor number
+            self.error('Expect variable name or number after "repeat".')
+            return None
+        
         self.consume(TokenType.LEFT_BRACE, "Expect repeat body.")
         body = []
         while not self.check(TokenType.RIGHT_BRACE) and not self.check(TokenType.EOL):

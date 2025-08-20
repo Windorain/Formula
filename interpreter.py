@@ -121,8 +121,16 @@ class Interpreter:
             assert isinstance(op_data, CompiledNodeGroup), "Bug in type checker."
             self.create_node_group(op_data)
         elif op_type == OpType.CREATE_REPEAT_ZONE:
-            assert isinstance(op_data, int), "Iterations should be an integer."
-            self.create_repeat_zone(op_data)
+            # Get iterations count from stack (compiled expression result)
+            iterations = self.stack.pop()
+            if isinstance(iterations, int):
+                self.create_repeat_zone(iterations)
+            elif isinstance(iterations, NodeSocket):
+                # Pass NodeSocket directly to create_repeat_zone for proper connection
+                self.create_repeat_zone(iterations)
+            else:
+                print(f"Error: Invalid iterations count type: {type(iterations)}")
+                return
         elif op_type == OpType.REPEAT_BODY:
             assert isinstance(op_data, list), "Repeat body should be a list of operations."
             self.execute_repeat_body(op_data)
@@ -287,7 +295,7 @@ class Interpreter:
                 [node.outputs[i] for i in reversed(range(len(node.outputs)))]
             )
 
-    def create_repeat_zone(self, iterations: int):
+    def create_repeat_zone(self, iterations):
         """Create a repeat zone with input and output nodes"""
         input_node = self.tree.nodes.new(type="GeometryNodeRepeatInput")
         output_node = self.tree.nodes.new(type="GeometryNodeRepeatOutput")
@@ -300,6 +308,16 @@ class Interpreter:
         
         if hasattr(output_node, 'repeat_items') and len(output_node.repeat_items) > 0:
             output_node.repeat_items.remove(output_node.repeat_items[0])  # Remove geometry
+        
+        # Connect iterations to input node
+        if isinstance(iterations, NodeSocket):
+            # Connect variable to iterations input
+            if len(input_node.inputs) > 0:
+                self.tree.links.new(iterations, input_node.inputs[0])
+        elif isinstance(iterations, int):
+            # Set literal value
+            if len(input_node.inputs) > 0:
+                input_node.inputs[0].default_value = iterations
         
         self.current_repeat_zone = {
             'input_node': input_node,
@@ -331,9 +349,9 @@ class Interpreter:
             if name in self.variables and isinstance(self.variables[name], NodeSocket):
                 captured_vars[name] = self.variables[name]
         
-        # Set iterations
-        if len(input_node.inputs) > 0:
-            input_node.inputs[0].default_value = repeat_zone['iterations']
+        # Set iterations - now handled by node connections
+        # if len(input_node.inputs) > 0:
+        #     input_node.inputs[0].default_value = repeat_zone['iterations']
         
         # Create input/output slots for captured variables
         for i, (name, socket) in enumerate(captured_vars.items()):
