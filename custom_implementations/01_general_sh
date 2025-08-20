@@ -1,0 +1,39 @@
+fn normal() -> normal: vec3 {
+    out normal = tex_coords().normal;
+}
+
+fn position() -> position: vec3 {
+    out position = geometry().position;
+}
+
+fn equal(a: float, b: float) -> c: float {
+    out c = math_compare(a, b);
+}
+
+fn less_equal(a: float, b: float) -> c: float {
+    out c = not (a > b);
+}
+
+fn greater_equal(a: float, b: float) -> c: float {
+    out c = not (a < b);
+}
+
+ng less_than(a: vec3, b: vec3) -> c: float {
+    ax,ay,az = a;
+    bx,by,bz = b;
+    out c = ax < bx and ay < by and az < bz;
+}
+
+ng greater_than(a: vec3, b: vec3) -> c: float {
+    ax,ay,az = a;
+    bx,by,bz = b;
+    out c = ax > bx and ay > by and az > bz;
+}
+
+fn less_equal(a: vec3, b: vec3) -> c: float {
+    out c = not (a > b);
+}
+
+fn greater_equal(a: vec3, b: vec3) -> c: float {
+    out c = not (a < b);
+}

@@ -1,0 +1,94 @@
+v2.1.0
+- Update node info for blender 4.4
+- (Fix) Load custom implementations on register.
+- Translate nodes with mouse when adding a formula.
+v2.0.4
+Another fixes release for review comments.
+- Properly unload fonts and handlers when unregistering.
+
+v2.0.3
+Release for review comments on the extensions platform.
+- Set max Blender version
+- Add font license
+- Remove old left-over testing code from files
+
+v2.0.2
+- Update add-on to work as an extension
+- Add support for menu and matrix sockets
+- Add aliases for the integer math node
+
+v2.0.1
+- Editor: fix pasting text with non-printable characters
+
+v2.0.0
+- Improve node info generation
+- Editor: auto-closing parens/braces/quotes
+- Editor: show other suggestions
+- Editor: update visuals
+- Deduplication of formula history
+- Add CI for running tests
+
+v2.0.0-alpha.4
+- Simple tests to detect regressions quicker.
+- Add support for loops
+- Add support for keyword arguments
+- Add a wiki, and update documentation
+- Improve "arrange from root" operator (#20)
+- Fix bug with default values for geometry sockets
+
+v2.0.0-alpha.3
+- Add some basic SDF's to included node groups.
+- Editor: better handling of indentation.
+- Editor: replace tabs with spaces on paste.
+- Generate node information from version of blender the add-on is being run in.
+- Reuse created node groups in the same formula.
+- Fix bug with adding newlines.
+- Fix problems with API changes in 4.0
+- Fix problem with methods on numbers (like `5.sin()`)
+
+v2.0.0-alpha.2
+- Add support for adding functions using the `fn` keyword.
+- Add support for adding node groups using the `ng` keyword.
+- Add support for custom implementations. For example, the function `acosh()` is now well-defined.
+- Fix bug with names with spaces
+- Fix bug with autocomplete
+
+v2.0.0-alpha.1
+- Add autocompletion by pressing tab
+- Fix bug with formulas like `5.sin()`
+
+v2.0.0-alpha
+- Complete rewrite to add support for the new fields system. Main changes include:
+- Typechecking to overload functions (e.g. math vs vector math)
+- Support to add basically all blender nodes, not just math nodes
+- Better editor and error messages
+
+v1.2.2
+- Fix a bug with attribute separate XYZ.
+v1.2.1
+- Fix vector math `fract` not working.
+- Fix separate xyz with one component always returning `x`.
+
+v1.2.0
+- Update positioning algorithm to work better with multiple outputs.
+- Add support for the new vector math functions: 'Refract' and 'Faceforward'.
+- Only check if it's a function if the next char is a '('. This allows attributes and functions
+  with the same name.
+- Add functions to select nodes connected to a root.
+    - 'CTRL+E': Select children
+    - 'SHIFT+E': Select parents 
+    - 'CTRL+SHIFT+E': Select children and parents
+- Missing arguments for non attribute nodes are just replaced with the default value of that node
+  socket now, instead of 0.
+- Clamp, Map Range Smoothstep and Smootherstep can now be used for normal math nodes (so not the attribute math versions)
+
+v1.1.0
+- Python constants can now be called without parentheses. This means that '!pi' is now valid.
+  To indicate what is part of the python expression, parentheses should still be used. If you
+  want the value pi/4, you should do '!(pi/4)' instead of '!pi/4', which would add a divide node.
+- Calling functions with multiple values is now valid for binary functions (2 arguments). This 
+  means that 'max(x,y,z)' is now valid. In addition to this, missing arguments are replaced with
+  0 for math functions and with the string in the missing argument name property in the side panel
+  for attribute math functions. 
+- Font size can now be changed while editing the formula by using the scroll wheel.
+- Syntax coloring now works for operators as well. 
