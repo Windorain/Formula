@@ -122,6 +122,7 @@ class Compiler:
             return
         # Output will be some node socket, so just simple assignment
         self.compile_expr(assign.value)
+        
         if len(targets) > 1:
             if assign.value.stype == td.StackType.STRUCT:
                 self.operations.append(td.Operation(td.OpType.SPLIT_STRUCT, None))
@@ -139,6 +140,7 @@ class Compiler:
                 assert False, "Unreachable, bug in type checker"
         elif isinstance(assign, td.TyOut) and assign.value.stype == td.StackType.STRUCT:
             self.operations.append(td.Operation(td.OpType.GET_OUTPUT, 0))
+        
         for target in targets:
             if target is None:
                 continue

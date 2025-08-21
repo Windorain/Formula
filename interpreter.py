@@ -35,8 +35,10 @@ class Interpreter:
         assert (
             OpType.END_OF_STATEMENT.value == 14
         ), "Exhaustive handling of Operation types."
+        
         if op_type == OpType.PUSH_VALUE:
             self.stack.append(op_data)
+        
         elif op_type == OpType.CREATE_VAR:
             assert isinstance(op_data, str), "Variable name should be a string."
             socket = self.stack.pop()
@@ -46,9 +48,11 @@ class Interpreter:
             if isinstance(socket, list):
                 socket = cast(list[NodeSocket], socket)
             self.variables[op_data] = socket
+        
         elif op_type == OpType.GET_VAR:
             assert isinstance(op_data, str), "Variable name should be a string."
             self.stack.append(self.variables[op_data])
+        
         elif op_type == OpType.GET_OUTPUT:
             assert isinstance(op_data, int), "Bug in type checker, index should be int."
             index = op_data
@@ -58,21 +62,25 @@ class Interpreter:
             ), "Bug in type checker, GET_OUTPUT only works on structs."
             # Index order is reversed
             self.stack.append(struct[-index - 1])
+
         elif op_type == OpType.SET_OUTPUT:
             assert isinstance(op_data, tuple), "Data should be tuple of index and value"
             index, value = op_data
             self.nodes[-1].outputs[index].default_value = value  # type: ignore
+        
         elif op_type == OpType.SET_FUNCTION_OUT:
             assert isinstance(op_data, int), "Data should be an index"
             socket = self.stack.pop()
             assert isinstance(socket, NodeSocket)
             self.function_outputs[op_data] = socket
+        
         elif op_type == OpType.SPLIT_STRUCT:
             struct = self.stack.pop()
             assert isinstance(
                 struct, list
             ), "Bug in type checker, GET_OUTPUT only works on structs."
             self.stack += struct
+
         elif op_type == OpType.CALL_FUNCTION:
             assert isinstance(op_data, CompiledFunction), "Bug in type checker."
             args = self.get_args(self.stack, len(op_data.inputs))
@@ -100,10 +108,12 @@ class Interpreter:
                 self.stack.append(list(reversed(self.function_outputs)))  # type: ignore
             self.function_outputs = outer_function_outputs
             self.variables = outer_vars
+
         elif op_type == OpType.CALL_NODEGROUP:
             assert isinstance(op_data, CompiledNodeGroup), "Bug in type checker."
             args = self.get_args(self.stack, len(op_data.inputs))
             self.execute_node_group(op_data, args)
+            
         elif op_type == OpType.CALL_BUILTIN:
             assert isinstance(op_data, NodeInstance), "Bug in compiler."
             args = self.get_args(self.stack, len(op_data.inputs))
@@ -117,27 +127,28 @@ class Interpreter:
             elif len(outputs) > 1:
                 self.stack.append([node.outputs[o] for o in reversed(outputs)])
             self.nodes.append(node)
+
         elif op_type == OpType.RENAME_NODE:
             self.nodes[-1].label = op_data
+
         elif op_type == OpType.CREATE_NODE_GROUP:
             assert isinstance(op_data, CompiledNodeGroup), "Bug in type checker."
             self.create_node_group(op_data)
+
         elif op_type == OpType.CREATE_REPEAT_ZONE:
+
             # Get iterations count from stack (compiled expression result)
             iterations = self.stack.pop()
-            if isinstance(iterations, int):
-                self.create_repeat_zone(iterations)
-            elif isinstance(iterations, NodeSocket):
-                # Pass NodeSocket directly to create_repeat_zone for proper connection
-                self.create_repeat_zone(iterations)
-            else:
-                print(f"Error: Invalid iterations count type: {type(iterations)}")
-                return
+
+            self.create_repeat_zone(iterations)
+
         elif op_type == OpType.REPEAT_BODY:
             assert isinstance(op_data, list), "Repeat body should be a list of operations."
             self.execute_repeat_body(op_data)
+
         elif op_type == OpType.END_OF_STATEMENT:
             self.stack = []
+
         else:
             print(f"Need implementation of {op_type}")
             raise NotImplementedError
@@ -298,6 +309,7 @@ class Interpreter:
             )
 
     def create_repeat_zone(self, iterations):
+        
         """Create a repeat zone with input and output nodes"""
         input_node = self.tree.nodes.new(type="GeometryNodeRepeatInput")
         output_node = self.tree.nodes.new(type="GeometryNodeRepeatOutput")

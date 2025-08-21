@@ -331,7 +331,7 @@ class Parser:
             iterations = ast_defs.Name(self.previous, self.previous.lexeme)
         elif self.match(TokenType.INT):
             # Literal number
-            iterations = ast_defs.Const(int(self.previous.lexeme))
+            iterations = ast_defs.Constant(self.previous, int(self.previous.lexeme), DataType.INT)
         else:
             # Error: neither variable nor number
             self.error('Expect variable name or number after "repeat".')
