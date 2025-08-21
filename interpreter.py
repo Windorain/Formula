@@ -309,7 +309,7 @@ class Interpreter:
             )
 
     def create_repeat_zone(self, iterations):
-        
+
         """Create a repeat zone with input and output nodes"""
         input_node = self.tree.nodes.new(type="GeometryNodeRepeatInput")
         output_node = self.tree.nodes.new(type="GeometryNodeRepeatOutput")
@@ -354,11 +354,9 @@ class Interpreter:
         input_node = repeat_zone['input_node']
         output_node = repeat_zone['output_node']
         
-        # Analyze loop body to identify variables that need capture
+        # Collect all variables recursively
         loop_vars = set()
-        for operation in body_operations:
-            if operation.op_type == OpType.CREATE_VAR:
-                loop_vars.add(operation.data)  # Variable name
+        self._collect_vars_recursive(body_operations, loop_vars)
         
         # Compare with external variables and capture only those that exist
         captured_vars = {}
@@ -366,9 +364,6 @@ class Interpreter:
             if name in self.variables and isinstance(self.variables[name], NodeSocket):
                 captured_vars[name] = self.variables[name]
         
-        # Set iterations - now handled by node connections
-        # if len(input_node.inputs) > 0:
-        #     input_node.inputs[0].default_value = repeat_zone['iterations']
         
         # Create input/output slots for captured variables
         for i, (name, socket) in enumerate(captured_vars.items()):
@@ -395,14 +390,8 @@ class Interpreter:
         # Connect captured variables to input node inputs (external connections)
         # Skip first input (iterations)
         for i, (name, socket) in enumerate(captured_vars.items()):
-            if i + 1 < len(input_node.inputs):
-                self.tree.links.new(socket, input_node.inputs[i + 1])
-        
-        # Connect variables to input node outputs (internal connections)
-        # Skip first output (iterations)
-        for i, (name, _) in enumerate(captured_vars.items()):
-            if i + 1 < len(input_node.outputs):
-                self.variables[name] = input_node.outputs[i + 1]
+            self.tree.links.new(socket, input_node.inputs[i + 1])
+            self.variables[name] = input_node.outputs[i + 1]
         
         # Execute body operations with proper variable connections
         for operation in body_operations:
@@ -410,19 +399,21 @@ class Interpreter:
         
         # Connect loop body results to output node inputs
         # This ensures data flows from the loop body to the output
-        for i, (name, _) in enumerate(captured_vars.items()):
-            if i < len(output_node.inputs):
-                # Get the current value of the variable after loop execution
-                if name in self.variables:
-                    var_value = self.variables[name]
-                    if isinstance(var_value, NodeSocket):
-                        self.tree.links.new(var_value, output_node.inputs[i])
-        
         # Connect output variables from repeat zone
-        # No need to skip, geometry was removed
         for i, (name, _) in enumerate(captured_vars.items()):
-            if i < len(output_node.outputs):
-                self.variables[name] = output_node.outputs[i]
+            if name in self.variables:
+                var_socket = self.variables[name]
+                if isinstance(var_socket, NodeSocket):
+                    self.tree.links.new(var_socket, output_node.inputs[i])                     
+                    self.variables[name] = output_node.outputs[i]
         
         # Pop from stack instead of deleting attribute
         self.repeat_zone_stack.pop()
+
+    def _collect_vars_recursive(self, operations, loop_vars):
+        """Recursively collect all variables from operations, including nested repeat bodies"""
+        for op in operations:
+            if op.op_type == OpType.CREATE_VAR:
+                loop_vars.add(op.data)
+            elif op.op_type == OpType.REPEAT_BODY and isinstance(op.data, list):
+                self._collect_vars_recursive(op.data, loop_vars)
