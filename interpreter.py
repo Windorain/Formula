@@ -39,6 +39,15 @@ class Interpreter:
         if op_type == OpType.PUSH_VALUE:
             self.stack.append(op_data)
         
+        elif op_type == OpType.CREATE_VAR:
+            assert isinstance(op_data, str), "Variable name should be a string."
+            # Create a reroute node for the variable
+            reroute_node = self.tree.nodes.new("NodeReroute")
+            reroute_node.label = op_data
+            self.nodes.append(reroute_node)
+            # Store the reroute node's output socket as the variable
+            self.variables[op_data] = reroute_node.outputs[0]
+
         elif op_type == OpType.BIND_VAR:
             assert isinstance(op_data, str), "Variable name should be a string."
             socket = self.stack.pop()
@@ -148,15 +157,6 @@ class Interpreter:
 
         elif op_type == OpType.END_OF_STATEMENT:
             self.stack = []
-
-        elif op_type == OpType.CREATE_REROUTE:
-            assert isinstance(op_data, str), "Variable name should be a string."
-            # Create a reroute node for the variable
-            reroute_node = self.tree.nodes.new("NodeReroute")
-            reroute_node.label = op_data
-            self.nodes.append(reroute_node)
-            # Store the reroute node's output socket as the variable
-            self.variables[op_data] = reroute_node.outputs[0]
 
         else:
             print(f"Need implementation of {op_type}")

@@ -123,7 +123,7 @@ class OpType(IntEnum):
     # Repeat body operations
     REPEAT_BODY = auto()
     # Create a reroute node
-    CREATE_REROUTE = auto()
+    CREATE_VAR = auto()
     # End of statement
     END_OF_STATEMENT = auto()
 
