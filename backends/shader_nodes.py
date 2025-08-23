@@ -1,6 +1,6 @@
 from . import type_defs as td
 from .builtin_nodes import instances, shader_geo_node_aliases, shader_node_aliases
-from .main import BackEnd
+from .main import BackEnd, NodeTreeType
 
 shader_nodes: dict[str, list[str]] = {
     "tex_coords": ["texture_coordinate"],
@@ -8,6 +8,10 @@ shader_nodes: dict[str, list[str]] = {
 
 
 class ShaderNodesBackEnd(BackEnd):
+    @property
+    def node_tree_type(self) -> NodeTreeType:
+        return NodeTreeType.SHADER
+
     def create_input(
         self,
         operations: list[td.Operation],
