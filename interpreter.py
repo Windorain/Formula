@@ -39,7 +39,7 @@ class Interpreter:
         if op_type == OpType.PUSH_VALUE:
             self.stack.append(op_data)
         
-        elif op_type == OpType.CREATE_VAR:
+        elif op_type == OpType.BIND_VAR:
             assert isinstance(op_data, str), "Variable name should be a string."
             socket = self.stack.pop()
             assert isinstance(
@@ -422,7 +422,7 @@ class Interpreter:
     def _collect_vars_recursive(self, operations, loop_vars):
         """Recursively collect all variables from operations, including nested repeat bodies"""
         for op in operations:
-            if op.op_type == OpType.CREATE_VAR:
+            if op.op_type == OpType.BIND_VAR:
                 loop_vars.add(op.data)
             elif op.op_type == OpType.REPEAT_BODY and isinstance(op.data, list):
                 self._collect_vars_recursive(op.data, loop_vars)

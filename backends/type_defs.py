@@ -91,7 +91,7 @@ class OpType(IntEnum):
     # Push the given value on the stack. None represents a default value.
     PUSH_VALUE = 0
     # Create a variable with the given name, and assign it to stack.pop().
-    CREATE_VAR = auto()
+    BIND_VAR = auto()
     # Get the variable with the given name, and push it onto the stack.
     GET_VAR = auto()
     # Replace the last item on the stack with the element at the given index.
