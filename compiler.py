@@ -225,10 +225,9 @@ class Compiler:
 
     def var(self, var: td.Var):
         # We should only end up here when we want to 'load' a variable.
-        # If the name doesn't exist yet, create a default value
+        # If the name doesn't exist yet, create a reroute node
         if var.needs_instantion:
-            self.back_end.create_input(self.operations, var.id, None, var.dtype[0])
-            self.operations.append(td.Operation(td.OpType.CREATE_VAR, var.id))
+            self.operations.append(td.Operation(td.OpType.CREATE_REROUTE, var.id))
         self.operations.append(td.Operation(td.OpType.GET_VAR, var.id))
 
     def get_output(self, get_output: td.GetOutput):

@@ -122,6 +122,8 @@ class OpType(IntEnum):
     CREATE_REPEAT_ZONE = auto()
     # Repeat body operations
     REPEAT_BODY = auto()
+    # Create a reroute node
+    CREATE_REROUTE = auto()
     # End of statement
     END_OF_STATEMENT = auto()
 

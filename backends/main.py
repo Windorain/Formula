@@ -172,8 +172,8 @@ class BackEnd(metaclass=ABCMeta):
         dtype: td.DataType,
     ):
         ...
+    
     # TODO: This is a helper function that should be removed.
-
     def create_input_helper(
         self,
         operations: list[td.Operation],

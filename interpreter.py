@@ -33,7 +33,7 @@ class Interpreter:
         op_type = operation.op_type
         op_data = operation.data
         assert (
-            OpType.END_OF_STATEMENT.value == 14
+            OpType.END_OF_STATEMENT.value == 15
         ), "Exhaustive handling of Operation types."
         
         if op_type == OpType.PUSH_VALUE:
@@ -148,6 +148,15 @@ class Interpreter:
 
         elif op_type == OpType.END_OF_STATEMENT:
             self.stack = []
+
+        elif op_type == OpType.CREATE_REROUTE:
+            assert isinstance(op_data, str), "Variable name should be a string."
+            # Create a reroute node for the variable
+            reroute_node = self.tree.nodes.new("NodeReroute")
+            reroute_node.label = op_data
+            self.nodes.append(reroute_node)
+            # Store the reroute node's output socket as the variable
+            self.variables[op_data] = reroute_node.outputs[0]
 
         else:
             print(f"Need implementation of {op_type}")
