@@ -75,7 +75,7 @@ class Compiler:
         for i in range(loop.start, loop.end + 1):
             if loop.var is not None:
                 self.operations.append(td.Operation(td.OpType.PUSH_VALUE, i))
-                self.operations.append(td.Operation(td.OpType.CREATE_VAR, loop.var.id))
+                self.operations.append(td.Operation(td.OpType.BIND_VAR, loop.var.id))
             self.operations += compiled_body
 
     def compile_repeat(self, repeat: td.TyRepeat):
@@ -105,7 +105,7 @@ class Compiler:
             if isinstance(assign, td.TyAssign):
                 assert isinstance(target, td.Var), "Assignment should be to a Var"
                 self.back_end.create_input(self.operations, target.id, value, dtype)
-                self.operations.append(td.Operation(td.OpType.CREATE_VAR, target.id))
+                self.operations.append(td.Operation(td.OpType.BIND_VAR, target.id))
             else:
                 assert (
                     isinstance(target, int)
@@ -146,7 +146,7 @@ class Compiler:
                 continue
             if isinstance(assign, td.TyAssign):
                 assert isinstance(target, td.Var), "Assignment should be to a Var"
-                self.operations.append(td.Operation(td.OpType.CREATE_VAR, target.id))
+                self.operations.append(td.Operation(td.OpType.BIND_VAR, target.id))
             else:
                 self.operations.append(td.Operation(td.OpType.SET_FUNCTION_OUT, target))
 
@@ -225,9 +225,8 @@ class Compiler:
 
     def var(self, var: td.Var):
         # We should only end up here when we want to 'load' a variable.
-        # If the name doesn't exist yet, create a default value
+        # If the name doesn't exist yet, create a reroute node
         if var.needs_instantion:
-            self.back_end.create_input(self.operations, var.id, None, var.dtype[0])
             self.operations.append(td.Operation(td.OpType.CREATE_VAR, var.id))
         self.operations.append(td.Operation(td.OpType.GET_VAR, var.id))
 

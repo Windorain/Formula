@@ -1,6 +1,6 @@
 from . import type_defs as td
 from .builtin_nodes import geometry_node_aliases, instances, shader_geo_node_aliases
-from .main import BackEnd
+from .main import BackEnd, NodeTreeType
 
 geometry_nodes: dict[str, list[str]] = {
     "add": ["integer_math_add"],
@@ -68,6 +68,10 @@ geometry_nodes: dict[str, list[str]] = {
 
 
 class GeometryNodesBackEnd(BackEnd):
+    @property
+    def node_tree_type(self) -> NodeTreeType:
+        return NodeTreeType.GEOMETRY
+
     def create_input(
         self,
         operations: list[td.Operation],

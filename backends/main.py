@@ -1,11 +1,26 @@
 from abc import ABCMeta, abstractmethod
 from typing import Literal, overload
+from enum import Enum
 
 from . import type_defs as td
 from .builtin_nodes import levenshtein_distance, nodes
 
 
+class NodeTreeType(Enum):
+    """节点树类型枚举"""
+    GEOMETRY = "GeometryNodeTree"
+    SHADER = "ShaderNodeTree"
+    COMPOSITING = "CompositorNodeTree"
+
+
 class BackEnd(metaclass=ABCMeta):
+    
+    @property
+    @abstractmethod
+    def node_tree_type(self) -> NodeTreeType:
+        """获取当前节点环境类型"""
+        pass
+
     @staticmethod
     def can_convert(from_type: td.DataType, to_type: td.DataType) -> bool:
         if from_type == to_type or from_type == td.DataType.DEFAULT:
@@ -146,6 +161,8 @@ class BackEnd(metaclass=ABCMeta):
         """Ensure that the value is of a type supported by the backend"""
         ...
 
+
+    # TODO: This is a function that should be removed.
     @abstractmethod
     def create_input(
         self,
@@ -155,7 +172,8 @@ class BackEnd(metaclass=ABCMeta):
         dtype: td.DataType,
     ):
         ...
-
+    
+    # TODO: This is a helper function that should be removed.
     def create_input_helper(
         self,
         operations: list[td.Operation],
