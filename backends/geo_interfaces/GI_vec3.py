@@ -67,6 +67,8 @@ def write_component(operations: list[td.Operation],
 
 class Vec3ComponentAttribute(Attribute):
     def __init__(self, index: int):
+
+        self.index = index      
         if index == 0:
             self.name = "x"
         elif index == 1:

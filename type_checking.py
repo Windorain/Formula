@@ -3,7 +3,9 @@ from copy import copy
 from . import ast_defs
 from .backends import type_defs as td
 from .backends.main import BackEnd
+from .backends.interface import TypeInterfaceRegistry
 from .mf_parser import Error, Parser
+
 
 
 class TypeChecker:
@@ -21,6 +23,19 @@ class TypeChecker:
         # Only set when inside a function definition
         self.function_outputs: list[td.TyArg] = []
         self.used_function_outputs: list[bool] = []
+        self.interfaces_registry: TypeInterfaceRegistry = TypeInterfaceRegistry()
+        
+        if back_end.node_tree_type == td.NodeTreeType.GEOMETRY:
+            self.interfaces_registry.initialize_interface_system_geometry()
+        
+        elif back_end.node_tree_type == td.NodeTreeType.SHADER:
+            self.interfaces_registry.initialize_interface_system_shader()
+        
+        elif back_end.node_tree_type == td.NodeTreeType.COMPOSITOR:
+            raise NotImplementedError("Compositor interface system not implemented")
+        
+        else:
+            raise ValueError(f"Unsupported node tree type: {back_end.node_tree_type}")
 
     def error(self, msg: str, node: ast_defs.Ast):
         self.errors.append(Error(node.token, msg))

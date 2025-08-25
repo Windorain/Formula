@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from typing import Union, Dict, List, Optional, Callable
 from .type_defs import DataType
-
+from bpy.types import NodeSocket
+from . import type_defs as td
 
 class AccessMode(IntEnum):
     """Property access mode"""
@@ -32,10 +33,10 @@ class Interface:
 class Attribute(Interface):
     interface_type: InterfaceType = InterfaceType.ATTRIBUTE
     
-    def read(self, source: str, target: str):
+    def read(self, operations: list[td.Operation], variable_name: str):
         raise NotImplementedError(f"read not implemented for {self.return_type}")
     
-    def write(self, source: str, target: str, value: str):
+    def write(self, operations: list[td.Operation], variable_name: str, value: Union[float, NodeSocket]):
         raise NotImplementedError(f"write not implemented for {self.return_type}")
 
 @dataclass
@@ -46,12 +47,12 @@ class TypeInterfaceDefinition:
 
 
 @dataclass
-class TypeRegistry:
+class TypeInterfaceRegistry:
     """Type registry"""
-    types: Dict[str, TypeInterfaceDefinition] = field(default_factory=dict)
+    types: Dict[DataType, TypeInterfaceDefinition] = field(default_factory=dict)
     
     def register_type(self, type_def: TypeInterfaceDefinition) -> None:
-        self.types[name] = type_def
+        self.types[type_def.base_type] = type_def
     
     def get_type(self, name: str) -> Optional[TypeInterfaceDefinition]:
         return self.types.get(name)
@@ -62,12 +63,9 @@ class TypeRegistry:
             return type_def.interfaces.get(interface_name)
         return None
 
+    def initialize_interface_system_geometry(self):
+        from .geo_interfaces import GI_vec3
+        self.register_type(GI_vec3.IVec3)
 
-def initialize_type_system():
-    """Initialize type system"""
-    pass
-
-
-# Initialize
-initialize_type_system()
-
+    def initialize_interface_system_shader(self):
+        raise NotImplementedError("Shader interface system not implemented")
