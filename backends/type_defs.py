@@ -248,6 +248,20 @@ class GetOutput(ty_expr):
 
 
 @dataclass
+class FieldAccess(ty_expr):
+    object: ty_expr
+    field_name: str
+    field_type: DataType
+
+
+@dataclass
+class TyFieldAssign(ty_stmt):
+    target: ty_expr
+    field_name: str
+    value: ty_expr
+
+
+@dataclass
 class TyAssign(ty_stmt):
     targets: list[Union[Var, None]]
     value: ty_expr
