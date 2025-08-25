@@ -7,24 +7,14 @@ from bpy.types import NodeSocket
 
 
 #push the i-th component of the vec3 onto the stack
-def read_component(operations: list[td.Operation],index: int, variable_name: str):
+def read_component(operations: list[td.Operation],index: int):
+    
+    #suppose the variable has been complied
     
     operations.append(
         td.Operation(
-            td.OpType.GET_VAR,
-            variable_name,
-        )
-    )
-    operations.append(
-        td.Operation(
             td.OpType.CALL_BUILTIN,
-            td.NodeInstance("ShaderNodeSeparateXYZ", [], [index], []),
-        )
-    )
-    operations.append(
-        td.Operation(
-            td.OpType.GET_OUTPUT,
-            index,
+            td.NodeInstance("ShaderNodeSeparateXYZ", [0], [index], []),
         )
     )
     
@@ -81,10 +71,12 @@ class Vec3ComponentAttribute(Attribute):
         self.return_type = DataType.FLOAT
         self.access_mode = AccessMode.READ_WRITE
 
-    def read(self, operations: list[td.Operation], variable_name: str):
-        read_component(operations, self.index, variable_name)
+    def read(self, operations: list[td.Operation]):
+        read_component(operations, self.index)
     
+    #todo: to be implemented
     def write(self, operations: list[td.Operation], variable_name: str, value: Union[float, NodeSocket]):
+        pass
         write_component(operations, self.index, variable_name, value)
 
 

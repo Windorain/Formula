@@ -2,8 +2,8 @@ from copy import copy
 
 from . import ast_defs
 from .backends import type_defs as td
-from .backends.main import BackEnd
-from .backends.interface import TypeInterfaceRegistry
+from .backends.main import BackEnd, NodeTreeType
+from .backends.interface import TypeInterfaceRegistry, AccessMode
 from .mf_parser import Error, Parser
 
 
@@ -25,14 +25,14 @@ class TypeChecker:
         self.used_function_outputs: list[bool] = []
         self.interfaces_registry: TypeInterfaceRegistry = TypeInterfaceRegistry()
         
-        if back_end.node_tree_type == td.NodeTreeType.GEOMETRY:
+        if back_end.node_tree_type == NodeTreeType.GEOMETRY:
             self.interfaces_registry.initialize_interface_system_geometry()
         
-        elif back_end.node_tree_type == td.NodeTreeType.SHADER:
+        elif back_end.node_tree_type == NodeTreeType.SHADER:
             self.interfaces_registry.initialize_interface_system_shader()
         
-        elif back_end.node_tree_type == td.NodeTreeType.COMPOSITOR:
-            raise NotImplementedError("Compositor interface system not implemented")
+        elif back_end.node_tree_type == NodeTreeType.COMPOSITOR:
+            pass
         
         else:
             raise ValueError(f"Unsupported node tree type: {back_end.node_tree_type}")
@@ -286,6 +286,15 @@ class TypeChecker:
         return typed_targets
 
     def check_assign(self, assign: ast_defs.Assign):
+        # examine if the assignment is a type interface attribute
+        if (len(assign.targets) == 1 and 
+            assign.targets[0] is not None and
+            isinstance(assign.targets[0], ast_defs.Attribute)):
+            
+            # handle attribute assignment, like vec.x = 1.0
+            self.check_attribute_assignment(assign.targets[0], assign.value)
+            return
+        
         targets = assign.targets
         self.check_expr(assign.value)
         expr = self.curr_node
@@ -555,15 +564,38 @@ class TypeChecker:
     def attribute(self, attr: ast_defs.Attribute):
         self.check_expr(attr.value)
         expr = self.curr_node
+        
         if not isinstance(expr, td.ty_expr) or expr.stype == td.StackType.EMPTY:
             self.error("Expected some value to retrieve attribute from.", attr)
+        
         assert isinstance(expr, td.ty_expr), "Checked above"
-        # See if the name is one of the outputs
+        
+        # examine if the attribute is a type interface
+        if expr.stype == td.StackType.SOCKET and len(expr.dtype) == 1:
+            base_type = expr.dtype[0]
+            
+            # find the type interface
+            type_interfaces = self.interfaces_registry.get_type(base_type)
+            if type_interfaces and type_interfaces.has_interface(attr.attr):
+                interface = type_interfaces.get_interface(attr.attr)
+                
+                # create FieldAccess node
+                self.curr_node = td.FieldAccess(
+                    td.StackType.SOCKET,
+                    [interface.return_type],
+                    [attr.attr],
+                    expr,
+                    attr.attr,
+                    interface.return_type
+                )
+                return
+        
         if attr.attr not in expr.out_names:
             return self.error(
                 f'"{attr.attr}" does not match one of the output names: {expr.out_names}',
                 attr,
             )
+        
         if expr.stype == td.StackType.SOCKET:
             if expr.dtype[0] == td.DataType.VEC3:
                 # Need to add a separate XYZ node for this to work.
@@ -584,3 +616,49 @@ class TypeChecker:
         self.curr_node = td.GetOutput(
             td.StackType.SOCKET, [dtype], out_names, expr, index
         )
+
+    def check_attribute_assignment(self, target_attr: ast_defs.Attribute, value: ast_defs.expr):
+        """Handle attribute assignment like 'vec.x = 1.0'"""
+        
+        #check the target object
+        self.check_expr(target_attr.value)
+        target_obj = self.curr_node
+        
+        if not isinstance(target_obj, td.ty_expr) or target_obj.stype == td.StackType.EMPTY:
+            self.error("Expected some value to assign attribute to.", target_attr)
+        
+        #check the value
+        self.check_expr(value)
+        value_expr = self.curr_node
+        
+        if not isinstance(value_expr, td.ty_expr) or value_expr.stype == td.StackType.EMPTY:
+            self.error("Expected some value to assign.", value)
+        
+        # find the type interface
+        if (target_obj.stype == td.StackType.SOCKET and 
+            len(target_obj.dtype) == 1):
+            
+            base_type = target_obj.dtype[0]
+            type_interfaces = self.interfaces_registry.get_type(base_type)
+            
+            if type_interfaces and type_interfaces.has_interface(target_attr.attr):
+                interface = type_interfaces.get_interface(target_attr.attr)
+                
+                if interface.access_mode in [AccessMode.WRITE_ONLY, AccessMode.READ_WRITE]:
+                    
+                    # check the type compatibility
+                    if not self.back_end.can_convert(value_expr.dtype[0], interface.return_type):
+                        self.error(
+                            f"Can't assign value of type {value_expr.dtype[0]._name_} "
+                            f"to attribute '{target_attr.attr}' of type {interface.return_type._name_}",
+                            value
+                        )
+                    
+                    # generate TyFieldAssign node
+                    self.curr_node = td.TyFieldAssign(
+                        target_obj, target_attr.attr, value_expr
+                    )
+                    return
+        
+        # if not a type interface, use the original assignment logic
+        self.error(f"Cannot assign to attribute '{target_attr.attr}'", target_attr)

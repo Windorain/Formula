@@ -54,6 +54,8 @@ class Compiler:
             self.compile_assign_like(stmt)
         elif isinstance(stmt, td.TyOut):
             self.compile_assign_like(stmt)
+        elif isinstance(stmt, td.TyFieldAssign):
+            self.compile_field_assign(stmt)
         elif isinstance(stmt, td.TyLoop):
             self.compile_loop(stmt)
         elif isinstance(stmt, td.TyRepeat):
@@ -159,6 +161,8 @@ class Compiler:
             self.node_call(expr)
         elif isinstance(expr, td.GetOutput):
             self.get_output(expr)
+        elif isinstance(expr, td.FieldAccess):
+            self.field_access(expr)
         elif isinstance(expr, td.FunctionCall):
             self.func_call(expr)
         else:
@@ -233,3 +237,56 @@ class Compiler:
     def get_output(self, get_output: td.GetOutput):
         self.compile_expr(get_output.value)
         self.operations.append(td.Operation(td.OpType.GET_OUTPUT, get_output.index))
+
+    def compile_field_assign(self, field_assign: td.TyFieldAssign):
+        # TODO: Implement this
+        pass
+
+        """Compile field assignment using interface write method"""
+        self.compile_expr(field_assign.value)   
+        self.compile_expr(field_assign.target)
+        
+        field_name = field_assign.field_name
+        target_type = field_assign.target.dtype[0]
+        
+        type_interfaces = self.type_checker.interfaces_registry.get_type(target_type)
+        if type_interfaces and type_interfaces.has_interface(field_name):
+            interface = type_interfaces.get_interface(field_name)
+            field_index = self._get_field_index(field_name)
+            var_name = self._get_variable_name(field_assign.target)
+            interface.write(self.operations, field_index, var_name, field_assign.value)
+        else:
+            assert False, f"No interface found for field '{field_name}' on type {target_type}"
+
+
+    def field_access(self, field_access: td.FieldAccess):
+        """Compile field access using interface read method"""
+        
+        self.compile_expr(field_access.object)
+        
+        field_name = field_access.field_name
+        object_type = field_access.object.dtype[0]
+        
+        type_interfaces = self.type_checker.interfaces_registry.get_type(object_type)
+        interface = type_interfaces.get_interface(field_name)
+        interface.read(self.operations)
+        
+
+
+    def _get_field_index(self, field_name: str) -> int:
+        if field_name == "x":
+            return 0
+        elif field_name == "y":
+            return 1
+        elif field_name == "z":
+            return 2
+        else:
+            return 0
+
+
+    def _get_variable_name(self, target: td.ty_expr) -> str:
+        if isinstance(target, td.Var):
+            return target.id
+        else:
+            temp_name = f"temp_{target.id if hasattr(target, 'id') else 'field'}"
+            return temp_name
