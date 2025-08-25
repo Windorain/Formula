@@ -90,15 +90,20 @@ ValueType = Union[bool, int, float, list[float], str, None]
 class OpType(IntEnum):
     # Push the given value on the stack. None represents a default value.
     PUSH_VALUE = 0
+    # Create a reroute node
+    CREATE_VAR = auto()
     # Create a variable with the given name, and assign it to stack.pop().
     BIND_VAR = auto()
     # Get the variable with the given name, and push it onto the stack.
     GET_VAR = auto()
+    # Destroy the variable with the given name.
+    DESTROY_VAR = auto() 
+    
     # Replace the last item on the stack with the element at the given index.
     # The indexing is reversed.
     # If stack looked like [x,y,[z,w]] then after GET_OUTPUT 1 it looks like
     # [x,y,z]
-    GET_OUTPUT = auto()
+    GET_OUTPUT = auto()   
     # Set the ouput of the last added node to the given value. Data is a
     # tuple of the output index and the value to be set.
     SET_OUTPUT = auto()
@@ -122,11 +127,10 @@ class OpType(IntEnum):
     CREATE_REPEAT_ZONE = auto()
     # Repeat body operations
     REPEAT_BODY = auto()
-    # Create a reroute node
-    CREATE_VAR = auto()
+
     # End of statement
     END_OF_STATEMENT = auto()
-
+    
 
 @dataclass
 class BuiltinNode:

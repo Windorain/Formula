@@ -5,8 +5,11 @@ from .backends.shader_nodes import ShaderNodesBackEnd
 from .mf_parser import Error
 from .type_checking import TypeChecker
 
+import uuid
+
 
 class Compiler:
+    
     @staticmethod
     def choose_backend(tree_type: str) -> BackEnd:
         if tree_type == "GeometryNodeTree":
@@ -30,6 +33,11 @@ class Compiler:
         else:
             self.type_checker = TypeChecker(self.back_end, {})
         self.curr_function: td.TyFunction | None = None
+
+    def _generate_temp_var_name(self, prefix: str = "temp") -> str:
+        #generate a unique temp var name
+        unique_id = str(uuid.uuid4())[:8]  
+        return f"{prefix}_{unique_id}"
 
     def check_functions(self, source: str) -> bool:
         self.type_checker.type_check(source)
@@ -239,54 +247,48 @@ class Compiler:
         self.operations.append(td.Operation(td.OpType.GET_OUTPUT, get_output.index))
 
     def compile_field_assign(self, field_assign: td.TyFieldAssign):
-        # TODO: Implement this
-        pass
-
-        """Compile field assignment using interface write method"""
-        self.compile_expr(field_assign.value)   
-        self.compile_expr(field_assign.target)
         
         field_name = field_assign.field_name
         target_type = field_assign.target.dtype[0]
         
         type_interfaces = self.type_checker.interfaces_registry.get_type(target_type)
-        if type_interfaces and type_interfaces.has_interface(field_name):
-            interface = type_interfaces.get_interface(field_name)
-            field_index = self._get_field_index(field_name)
-            var_name = self._get_variable_name(field_assign.target)
-            interface.write(self.operations, field_index, var_name, field_assign.value)
-        else:
-            assert False, f"No interface found for field '{field_name}' on type {target_type}"
+        interface = type_interfaces.get_interface(field_name)
+        
+
+        #generate temp names for the value and the target
+        #pass the value to the interface
+        self.compile_expr(field_assign.value)   
+        temp_value_name = self._generate_temp_var_name(f"{field_assign.value.id}")        
+        self.operations.append(td.Operation(td.OpType.BIND_VAR, temp_value_name))        
+        
+        self.compile_expr(field_assign.target)
+        temp_target_name = self._generate_temp_var_name(f"{field_assign.target.id}")
+        self.operations.append(td.Operation(td.OpType.BIND_VAR, temp_target_name))
+
+        interface.write(self.operations, temp_target_name, temp_value_name)
+        
+        #destroy the temp vars
+        self.operations.append(td.Operation(td.OpType.DESTROY_VAR, temp_value_name))
+        self.operations.append(td.Operation(td.OpType.DESTROY_VAR, temp_target_name))
+
 
 
     def field_access(self, field_access: td.FieldAccess):
         """Compile field access using interface read method"""
-        
-        self.compile_expr(field_access.object)
         
         field_name = field_access.field_name
         object_type = field_access.object.dtype[0]
         
         type_interfaces = self.type_checker.interfaces_registry.get_type(object_type)
         interface = type_interfaces.get_interface(field_name)
-        interface.read(self.operations)
+        
+        self.compile_expr(field_access.object)
+        temp_var_name = self._generate_temp_var_name(f"{field_name}")        
+        self.operations.append(td.Operation(td.OpType.BIND_VAR, temp_var_name))        
+        interface.read(self.operations, temp_var_name)        
+        self.operations.append(td.Operation(td.OpType.DESTROY_VAR, temp_var_name))
         
 
 
-    def _get_field_index(self, field_name: str) -> int:
-        if field_name == "x":
-            return 0
-        elif field_name == "y":
-            return 1
-        elif field_name == "z":
-            return 2
-        else:
-            return 0
 
 
-    def _get_variable_name(self, target: td.ty_expr) -> str:
-        if isinstance(target, td.Var):
-            return target.id
-        else:
-            temp_name = f"temp_{target.id if hasattr(target, 'id') else 'field'}"
-            return temp_name

@@ -33,7 +33,7 @@ class Interpreter:
         op_type = operation.op_type
         op_data = operation.data
         assert (
-            OpType.END_OF_STATEMENT.value == 15
+            OpType.END_OF_STATEMENT.value == 16
         ), "Exhaustive handling of Operation types."
         
         if op_type == OpType.PUSH_VALUE:
@@ -61,6 +61,10 @@ class Interpreter:
         elif op_type == OpType.GET_VAR:
             assert isinstance(op_data, str), "Variable name should be a string."
             self.stack.append(self.variables[op_data])
+        
+        elif op_type == OpType.DESTROY_VAR:
+            assert isinstance(op_data, str), "Variable name should be a string."
+            del self.variables[op_data]
         
         elif op_type == OpType.GET_OUTPUT:
             assert isinstance(op_data, int), "Bug in type checker, index should be int."

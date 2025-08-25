@@ -7,9 +7,14 @@ from bpy.types import NodeSocket
 
 
 #push the i-th component of the vec3 onto the stack
-def read_component(operations: list[td.Operation],index: int):
+def read_component(operations: list[td.Operation],index: int, variable_name: str):
     
-    #suppose the variable has been complied
+    operations.append(
+        td.Operation(
+            td.OpType.GET_VAR,
+            variable_name
+        )
+    )
     
     operations.append(
         td.Operation(
@@ -20,29 +25,29 @@ def read_component(operations: list[td.Operation],index: int):
     
 def write_component(operations: list[td.Operation],
     index: int, 
-    variable_name: str,
+    target: str,
     value: Union[float, NodeSocket]):
     
     if index == 0:  # replace x component
-        operations.append(td.Operation(td.OpType.PUSH_VALUE, value))
-        read_component(operations, 1, variable_name)
-        read_component(operations, 2, variable_name)
+        operations.append(td.Operation(td.OpType.GET_VAR, value))
+        read_component(operations, 1, target)
+        read_component(operations, 2, target)
     
     elif index == 1:  # replace y component
-        read_component(operations, 0, variable_name)
-        operations.append(td.Operation(td.OpType.PUSH_VALUE, value))
-        read_component(operations, 2, variable_name)
+        read_component(operations, 0, target)
+        operations.append(td.Operation(td.OpType.GET_VAR, value))
+        read_component(operations, 2, target)
     
     elif index == 2:  # replace z component
-        read_component(operations, 0, variable_name)
-        read_component(operations, 1, variable_name)
-        operations.append(td.Operation(td.OpType.PUSH_VALUE, value))
+        read_component(operations, 0, target)
+        read_component(operations, 1, target)
+        operations.append(td.Operation(td.OpType.GET_VAR, value))
     
     # create Combine XYZ node
     operations.append(
         td.Operation(
             td.OpType.CALL_BUILTIN,
-            td.NodeInstance("ShaderNodeCombineXYZ", [], [0], []),
+            td.NodeInstance("ShaderNodeCombineXYZ", [0,1,2], [0], []),
         )
     )
     
@@ -50,7 +55,7 @@ def write_component(operations: list[td.Operation],
     operations.append(
         td.Operation(
             td.OpType.BIND_VAR,
-            variable_name
+            target
         )
     )
 
@@ -71,8 +76,8 @@ class Vec3ComponentAttribute(Attribute):
         self.return_type = DataType.FLOAT
         self.access_mode = AccessMode.READ_WRITE
 
-    def read(self, operations: list[td.Operation]):
-        read_component(operations, self.index)
+    def read(self, operations: list[td.Operation], variable_name: str):
+        read_component(operations, self.index, variable_name)
     
     #todo: to be implemented
     def write(self, operations: list[td.Operation], variable_name: str, value: Union[float, NodeSocket]):
