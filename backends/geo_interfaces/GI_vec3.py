@@ -79,9 +79,7 @@ class Vec3ComponentAttribute(Attribute):
     def read(self, operations: list[td.Operation], variable_name: str):
         read_component(operations, self.index, variable_name)
     
-    #todo: to be implemented
     def write(self, operations: list[td.Operation], variable_name: str, value: Union[float, NodeSocket]):
-        pass
         write_component(operations, self.index, variable_name, value)
 
 
