@@ -56,7 +56,7 @@ class Parser:
     def parse(self) -> ast_defs.Module:
         module = ast_defs.Module()
         while not self.match(TokenType.EOL):
-            statement = self.declaration()
+            statement = self.parse_statement()
             if statement is not None:
                 module.body.append(statement)
             if self.panic_mode:
@@ -167,8 +167,29 @@ class Parser:
             self.advance()
             infix_rule = self.get_rule(self.previous.token_type).infix
             infix_rule(self, can_assign)
+        
         if can_assign and self.match(TokenType.EQUAL):
-            self.error("Invalid assignment target.")
+            # Check if current node can be used as assignment target
+            if self.curr_node is None:
+                self.error("Invalid assignment target.")
+                return None
+            
+            # For assignment statements, we need to create an Assign node
+            # The current node becomes the target, and we parse the value
+            target = self.curr_node
+            if not isinstance(target, (ast_defs.Name, ast_defs.Attribute)):
+                self.error("Invalid assignment target.")
+                return None
+            
+            # Parse the value after the equals sign
+            value = self.expression()
+            if value is None:
+                self.error("Expected expression after '='.")
+                return None
+            
+            # Create assignment statement
+            self.curr_node = ast_defs.Assign(self.previous, [target], value)
+            return self.curr_node
         if self.curr_node is None:
             self.error("Expected expression with a value.")
         if self.curr_node is not None and not can_assign:
@@ -263,7 +284,7 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect function body.")
         body = []
         while not (self.check(TokenType.RIGHT_BRACE) or self.match(TokenType.EOL)):
-            if (stmt := self.declaration()) is None:
+            if (stmt := self.parse_statement()) is None:
                 continue
             body.append(stmt)
         self.consume(TokenType.RIGHT_BRACE, 'Expect closing "}".')
@@ -290,6 +311,7 @@ class Parser:
         args, body, returns = self.parse_func_structure()
         return ast_defs.NodegroupDef(token, name, args, body, returns)
 
+    #used in loop
     def parse_int(self) -> int:
         if self.match(TokenType.MINUS):
             self.consume(TokenType.INT, "Expected an integer")
@@ -316,7 +338,7 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect loop body.")
         body = []
         while not (self.check(TokenType.RIGHT_BRACE) or self.match(TokenType.EOL)):
-            if (stmt := self.declaration()) is None:
+            if (stmt := self.parse_statement()) is None:
                 continue
             body.append(stmt)
         self.consume(TokenType.RIGHT_BRACE, 'Expect closing "}".')
@@ -340,13 +362,13 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect repeat body.")
         body = []
         while not self.check(TokenType.RIGHT_BRACE) and not self.check(TokenType.EOL):
-            statement = self.declaration()
+            statement = self.parse_statement()
             if statement is not None:
                 body.append(statement)
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after repeat body.")
         return ast_defs.Repeat(token, iterations, body)
 
-    def declaration(self) -> ast_defs.stmt | None:
+    def parse_statement(self) -> ast_defs.stmt | None:
         node: ast_defs.stmt | None = None
         if self.match(TokenType.OUT):
             node = self.out()

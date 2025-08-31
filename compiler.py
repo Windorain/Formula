@@ -249,6 +249,7 @@ class Compiler:
     def compile_field_assign(self, field_assign: td.TyFieldAssign):
         
         field_name = field_assign.field_name
+        target_id = field_assign.target.id
         target_type = field_assign.target.dtype[0]
         
         type_interfaces = self.type_checker.interfaces_registry.get_type(target_type)
@@ -258,18 +259,16 @@ class Compiler:
         #generate temp names for the value and the target
         #pass the value to the interface
         self.compile_expr(field_assign.value)   
-        temp_value_name = self._generate_temp_var_name(f"{field_assign.value.id}")        
+        temp_value_name = self._generate_temp_var_name(f"{field_name}")        
         self.operations.append(td.Operation(td.OpType.BIND_VAR, temp_value_name))        
         
         self.compile_expr(field_assign.target)
-        temp_target_name = self._generate_temp_var_name(f"{field_assign.target.id}")
-        self.operations.append(td.Operation(td.OpType.BIND_VAR, temp_target_name))
+        self.operations.append(td.Operation(td.OpType.BIND_VAR, target_id))
 
-        interface.write(self.operations, temp_target_name, temp_value_name)
+        interface.write(self.operations, target_id, temp_value_name)
         
         #destroy the temp vars
         self.operations.append(td.Operation(td.OpType.DESTROY_VAR, temp_value_name))
-        self.operations.append(td.Operation(td.OpType.DESTROY_VAR, temp_target_name))
 
 
 
