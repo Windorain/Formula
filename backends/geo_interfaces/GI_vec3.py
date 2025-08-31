@@ -83,10 +83,33 @@ class Vec3ComponentAttribute(Attribute):
         write_component(operations, self.index, variable_name, value)
 
 
+class Vec3LengthAttribute(Attribute):
+    def __init__(self):
+        self.name = "length"
+        self.return_type = DataType.FLOAT
+        self.access_mode = AccessMode.READ_ONLY
+    
+    def read(self, operations: list[td.Operation], variable_name: str):
+        operations.append(
+            td.Operation(
+                td.OpType.GET_VAR,
+                variable_name
+            )
+        )
+        
+        operations.append(
+            td.Operation(
+                td.OpType.CALL_BUILTIN,
+                td.NodeInstance("ShaderNodeVectorMath", [0], [1], [('operation', 'LENGTH')])
+            )
+        )
+
 
 Vec3XAttribute = Vec3ComponentAttribute(0)
 Vec3YAttribute = Vec3ComponentAttribute(1)
 Vec3ZAttribute = Vec3ComponentAttribute(2)
+
+
 
 IVec3 = TypeInterfaceDefinition(
     base_type=DataType.VEC3,
@@ -94,5 +117,6 @@ IVec3 = TypeInterfaceDefinition(
         "x": Vec3XAttribute,
         "y": Vec3YAttribute,
         "z": Vec3ZAttribute,
+        "length": Vec3LengthAttribute()
     }
 )
